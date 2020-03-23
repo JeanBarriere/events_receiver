@@ -1,29 +1,19 @@
 import { Request, Response } from 'express'
-import { IdentifierSet } from '../../utils'
-import { WebhookListener } from '../../Webhook'
+import { ListenersFactory } from 'src/listenersFactory'
 
 export class ListenerController {
-  private _listeners: IdentifierSet<WebhookListener>
+  private _factory: ListenersFactory
 
-  constructor () {
-    this._listeners = new IdentifierSet('subscriptionID')
-  }
-
-  public hasListenerForEventType (eventType: string): WebhookListener | null {
-    for (const listener of this._listeners) {
-      if (eventType === listener.eventType) {
-        return listener
-      }
-    }
-    return null
+  constructor (listenersFactory: ListenersFactory) {
+    this._factory = listenersFactory
   }
 
   public async listen (req: Request, res: Response): Promise<void> {
     const subscriptionID = req.body.subscriptionID as string
     const eventType = req.body.eventType as string
-    const listener: WebhookListener = { subscriptionID, eventType }
+    const service = req.body.service as string
 
-    this._listeners.add(listener)
+    this._factory.add({ subscriptionID, service, eventType })
 
     res.sendStatus(200)
   }
@@ -31,12 +21,8 @@ export class ListenerController {
   public async unlisten (req: Request, res: Response): Promise<void> {
     const subscriptionID = req.body.subscriptionID as string
 
-    const listener = this._listeners.find(subscriptionID)
-    let deleted = false
-    if (listener) {
-      deleted = this._listeners.delete(listener)
-    }
+    this._factory.delete(subscriptionID)
 
-    res.sendStatus(deleted ? 200 : 404)
+    res.sendStatus(200)
   }
 }

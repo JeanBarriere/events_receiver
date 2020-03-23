@@ -2,14 +2,14 @@ import { getEnvOrError } from './utils'
 import { HTTPServer } from './http/server'
 import { ServicesRegistry } from './registry'
 import { ListenerController } from './http/controllers/listener'
+import { ListenersFactory } from './listenersFactory'
 
 async function main () {
     const signingKey = getEnvOrError('SLACK_BOT_SIGNING_KEY')
 
-    const listenerController = new ListenerController()
-    const servicesRegistry = new ServicesRegistry(new Map([['slack', [signingKey]]]))
-
-    servicesRegistry.use(listenerController)
+    const listenersFactory = new ListenersFactory()
+    const listenerController = new ListenerController(listenersFactory)
+    const servicesRegistry = new ServicesRegistry(new Map([['slack', [signingKey]]]), listenersFactory)
 
     const server = new HTTPServer(servicesRegistry, listenerController)
 

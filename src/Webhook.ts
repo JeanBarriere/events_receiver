@@ -4,6 +4,7 @@ import { getEnvOrError } from './utils'
 
 export interface WebhookListener {
   subscriptionID: string
+  service: string
   eventType: string
 }
 
@@ -22,14 +23,14 @@ export abstract class AWebhook {
   protected abstract getRuntimeEventFromHook(subscriptionID: string, ...args: any[]): Promise<RuntimeEvent>
   protected abstract getEventTypeFromHook(...args: any[]): Promise<string>
 
-  getListenerForEventType (_eventType: string): WebhookListener | null { return null }
+  getListenersForEventType (_eventType: string): WebhookListener[] { return [] }
 
-  public async process (...args: any[]): Promise<boolean> {
-    const listener = this.getListenerForEventType(await this.getEventTypeFromHook(...args))
-    if (listener) {
+  public async process (...args: any[]): Promise<void> {
+    const listeners = this.getListenersForEventType(await this.getEventTypeFromHook(...args))
+
+    for (const listener of listeners) {
       const runtimeEvent = await this.getRuntimeEventFromHook(listener.subscriptionID, ...args)
-      return await axios.post(`${AWebhook.runtimeURL}/app/events`, runtimeEvent).then((res) => res.status === 200).catch(() => false)
+      await axios.post(`${AWebhook.runtimeURL}/app/events`, runtimeEvent).then((res) => res.status === 200).catch(() => false)
     }
-    return false
   }
 }
